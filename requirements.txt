@@ -1,0 +1,5 @@
+pandas
+pyqt5
+scikit-learn
+joblib
+pyserial
