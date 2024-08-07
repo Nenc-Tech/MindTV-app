@@ -47,15 +47,12 @@ void loop() {
         beatAvg[i] /= RATE_SIZE;
       }
     }
-    Serial.print(irValue);
-    Serial.print(",");
+    Serial.println();
     Serial.print((int)beatsPerMinute[i]);
     Serial.print(",");
     Serial.print(beatAvg[i]);
     Serial.print(",");
     Serial.print(GSR); // GSR
-    Serial.print(",");
   }
-  Serial.println();
-  delay(20); // Small delay to avoid overwhelming the serial buffer
+  delay(50); // Small delay to avoid overwhelming the serial buffer
 }

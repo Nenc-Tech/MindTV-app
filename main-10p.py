@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QThread, pyqtSignal
 from joblib import load, dump
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
 class DataCollectionThread(QThread):
@@ -59,7 +58,7 @@ class PredictionThread(QThread):
             predictions = self.model.predict(df)
             prediction_counts = pd.Series(predictions).value_counts()
             most_common = prediction_counts.idxmax()
-            result_message = f"Tipo de conteúdo previsto: {most_common}"
+            result_message = f"Emoção prevalecente: {most_common}"
             self.prediction_signal.emit(result_message)
             self.log_signal.emit(result_message)
         except Exception as e:
@@ -78,16 +77,12 @@ class TrainingThread(QThread):
             for file_path in self.file_paths:
                 if file_path:
                     df = pd.read_csv(file_path)
-                    if 'Content' not in df.columns:
-                        self.log_signal.emit(f"Erro: o arquivo {file_path} não contém a coluna 'Content'.")
-                        return
                     dfs.append(df)
             data = pd.concat(dfs, ignore_index=True)
             X = data[['beatsPerMinute', 'beatAvg', 'GSR']]
-            y = data['Content']
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            y = data['Emotion']
             model = RandomForestClassifier(n_estimators=100, random_state=42)
-            model.fit(X_train, y_train)
+            model.fit(X, y)
             dump(model, 'trained_model.joblib')
             self.log_signal.emit("Treinamento concluído e modelo salvo como 'trained_model.joblib'.")
         except Exception as e:
@@ -187,9 +182,6 @@ class ColetaInicialWidget(QWidget):
     def export_csv(self):
         try:
             df = pd.DataFrame(self.data, columns=['beatsPerMinute', 'beatAvg', 'GSR'])
-            content_type = self.content_combo.currentText()
-            df['Content'] = content_type
-
             base_filename = 'coleta_dados'
             extension = '.csv'
             filename = base_filename + extension
@@ -245,7 +237,7 @@ class TreinamentoRedeWidget(QWidget):
         if file_path:
             self.file_paths[index] = file_path
             self.output.append(f"Arquivo {index+1} selecionado: {file_path}")
-    
+
     def train_model(self):
         if not self.file_paths[0]:
             self.output.append("Erro: pelo menos um arquivo CSV deve ser selecionado.")
@@ -311,7 +303,7 @@ class MindTVAppWidget(QWidget):
         self.collect_button.clicked.connect(self.collect_data)
         layout.addWidget(self.collect_button)
 
-        self.predict_button = QPushButton('Previsão de Sentimento', self)
+        self.predict_button = QPushButton('Previsão de Emoção', self)
         self.predict_button.clicked.connect(self.predict_content)
         self.predict_button.setEnabled(False)
         layout.addWidget(self.predict_button)
