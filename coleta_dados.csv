@@ -1,173 +1,221 @@
-beatsPerMinute,beatAvg,GSR,Content
-65,64,300,Programa esportivo
-70,68,320,Programa esportivo
-85,80,450,Programa jornalistico
-75,72,380,Programa jornalistico
-60,62,250,Programa politico
-78,75,410,Programa politico
-80,78,390,Filme de acao
-88,84,500,Filme de acao
-72,70,310,Filme de comedia
-75,74,350,Filme de comedia
-70,69,320,Filme de terror
-90,88,520,Filme de terror
-75,73,330,Serie de drama
-78,76,360,Serie de drama
-60,58,220,Programa de musica
-70,68,300,Programa de musica
-68,67,290,Serie de comedia
-75,74,350,Serie de comedia
-70,68,320,Serie de acao
-85,82,450,Serie de acao
-65,63,250,Reality show
-78,76,400,Reality show
-65,63,270,Documentario
-75,74,350,Documentario
-60,58,240,Desenho animado
-70,68,320,Desenho animado
-68,67,290,Programa de culinaria
-75,73,360,Programa de culinaria
-68,66,310,Programa de viagem
-72,70,330,Programa de viagem
-70,69,320,Programa de entrevistas
-78,76,380,Programa de entrevistas
-65,63,280,Serie de ficcao cientifica
-80,78,420,Serie de ficcao cientifica
-65,64,290,Programa de variedade
-75,74,350,Programa de variedade
-60,58,260,Programa infantil
-70,69,320,Programa infantil
-68,67,300,Minisserie
-78,76,380,Minisserie
-70,68,310,Filme de romance
-78,76,380,Filme de romance
-75,74,330,Serie de suspense
-85,82,420,Serie de suspense
-70,69,320,Programa de auditorio
-78,76,380,Programa de auditorio
-65,63,280,Programa de reformas
-72,70,330,Programa de reformas
-68,67,310,Programa de talentos
-78,76,380,Programa de talentos
-70,69,330,Filme de aventura
-80,78,400,Filme de aventura
-70,69,320,Filme de fantasia
-78,76,380,Filme de fantasia
-72,70,330,Serie de misterio
-85,82,410,Serie de misterio
-68,66,310,Programa de saude e bem estar
-72,70,350,Programa de saude e bem estar
-60,58,260,Telejornal
-75,73,360,Telejornal
-68,67,290,Novela
-78,76,380,Novela
-68,67,290,Programa de tecnologia
-72,70,340,Programa de tecnologia
-65,63,280,Programa de natureza e vida selvagem
-72,70,350,Programa de natureza e vida selvagem
-70,69,320,Talk show
-78,76,380,Talk show
-68,66,310,Programa de moda e estilo
-75,73,350,Programa de moda e estilo
-72,70,330,Filme historico
-80,78,400,Filme historico
-70,68,320,Serie policial
-78,76,380,Serie policial
-68,66,310,Programa de quiz e jogos
-72,70,340,Programa de quiz e jogos
-68,67,290,Serie documental
-75,73,360,Serie documental
-68,66,310,Programa de debates
-75,73,350,Programa de debates
-65,63,280,Programa de espiritualidade/religiao
-72,70,350,Programa de espiritualidade/religiao
-68,67,290,Filme de animacao
-78,76,380,Filme de animacao
-70,69,320,Serie antologica
-80,78,400,Serie antologica
-65,64,300,Programa esportivo
-70,68,320,Programa esportivo
-85,80,450,Programa jornalistico
-75,72,380,Programa jornalistico
-60,62,250,Programa politico
-78,75,410,Programa politico
-80,78,390,Filme de acao
-88,84,500,Filme de acao
-72,70,310,Filme de comedia
-75,74,350,Filme de comedia
-70,69,320,Filme de terror
-90,88,520,Filme de terror
-75,73,330,Serie de drama
-78,76,360,Serie de drama
-60,58,220,Programa de musica
-70,68,300,Programa de musica
-68,67,290,Serie de comedia
-75,74,350,Serie de comedia
-70,68,320,Serie de acao
-85,82,450,Serie de acao
-65,63,250,Reality show
-78,76,400,Reality show
-65,63,270,Documentario
-75,74,350,Documentario
-60,58,240,Desenho animado
-70,68,320,Desenho animado
-68,67,290,Programa de culinaria
-75,73,360,Programa de culinaria
-68,66,310,Programa de viagem
-72,70,330,Programa de viagem
-70,69,320,Programa de entrevistas
-78,76,380,Programa de entrevistas
-65,63,280,Serie de ficcao cientifica
-80,78,420,Serie de ficcao cientifica
-65,64,290,Programa de variedade
-75,74,350,Programa de variedade
-60,58,260,Programa infantil
-70,69,320,Programa infantil
-68,67,300,Minisserie
-78,76,380,Minisserie
-70,68,310,Filme de romance
-78,76,380,Filme de romance
-75,74,330,Serie de suspense
-85,82,420,Serie de suspense
-70,69,320,Programa de auditorio
-78,76,380,Programa de auditorio
-65,63,280,Programa de reformas
-72,70,330,Programa de reformas
-68,67,310,Programa de talentos
-78,76,380,Programa de talentos
-70,69,330,Filme de aventura
-80,78,400,Filme de aventura
-70,69,320,Filme de fantasia
-78,76,380,Filme de fantasia
-72,70,330,Serie de misterio
-85,82,410,Serie de misterio
-68,66,310,Programa de saude e bem estar
-72,70,350,Programa de saude e bem estar
-60,58,260,Telejornal
-75,73,360,Telejornal
-68,67,290,Novela
-78,76,380,Novela
-68,67,290,Programa de tecnologia
-72,70,340,Programa de tecnologia
-65,63,280,Programa de natureza e vida selvagem
-72,70,350,Programa de natureza e vida selvagem
-70,69,320,Talk show
-78,76,380,Talk show
-68,66,310,Programa de moda e estilo
-75,73,350,Programa de moda e estilo
-72,70,330,Filme historico
-80,78,400,Filme historico
-70,68,320,Serie policial
-78,76,380,Serie policial
-68,66,310,Programa de quiz e jogos
-72,70,340,Programa de quiz e jogos
-68,67,290,Serie documental
-75,73,360,Serie documental
-68,66,310,Programa de debates
-75,73,350,Programa de debates
-65,63,280,Programa de espiritualidade/religiao
-72,70,350,Programa de espiritualidade/religiao
-68,67,290,Filme de animacao
-78,76,380,Filme de animacao
-70,69,320,Serie antologica
-80,78,400,Serie antologica
+beatsPerMinute,beatAvg,GSR,Emotion
+112,82,300,Tristeza
+117,69,320,Raiva
+120,79,450,Alegria
+123,93,380,Medo
+139,100,250,Tristeza
+102,95,410,Medo
+123,68,390,Medo
+90,118,500,Medo
+71,94,310,Medo
+78,108,350,Medo
+162,68,320,Raiva
+142,107,520,Alegria
+91,90,330,Medo
+121,63,360,Medo
+63,99,220,Tristeza
+168,65,300,Tristeza
+96,97,290,Tristeza
+122,63,350,Medo
+71,101,320,Medo
+149,69,450,Alegria
+98,106,250,Tristeza
+102,105,400,Medo
+168,107,270,Alegria
+94,69,350,Medo
+158,116,240,Tristeza
+100,81,320,Medo
+121,101,290,Medo
+150,113,360,Alegria
+98,84,310,Medo
+138,101,330,Medo
+116,101,320,Medo
+164,89,380,Medo
+123,97,280,Tristeza
+68,105,420,Medo
+83,101,290,Medo
+103,74,350,Medo
+75,108,260,Medo
+62,110,320,Medo
+66,117,300,Medo
+122,107,380,Medo
+139,104,310,Medo
+89,102,380,Medo
+146,85,330,Medo
+109,79,420,Medo
+61,72,320,Medo
+70,115,380,Medo
+102,87,280,Medo
+75,113,330,Medo
+135,84,310,Medo
+66,83,380,Medo
+63,71,330,Medo
+158,73,400,Medo
+142,90,320,Medo
+94,118,380,Medo
+129,111,330,Medo
+112,104,410,Medo
+84,117,310,Medo
+139,90,350,Medo
+108,111,260,Medo
+60,115,360,Medo
+117,110,290,Medo
+116,89,380,Medo
+157,109,290,Medo
+91,110,340,Medo
+140,103,280,Medo
+66,85,350,Medo
+91,107,320,Medo
+148,90,380,Medo
+97,72,310,Medo
+132,81,350,Medo
+87,118,330,Medo
+127,90,400,Medo
+109,99,320,Medo
+69,108,380,Medo
+95,72,310,Medo
+72,88,340,Medo
+98,110,290,Medo
+77,106,360,Medo
+110,79,280,Medo
+64,112,350,Medo
+68,112,320,Medo
+94,91,380,Medo
+63,102,310,Medo
+93,106,350,Medo
+78,111,330,Medo
+123,88,400,Medo
+101,88,320,Medo
+132,103,380,Medo
+66,102,310,Medo
+133,71,340,Medo
+135,88,290,Medo
+95,89,360,Medo
+98,106,310,Medo
+60,79,350,Medo
+92,112,280,Medo
+98,114,320,Medo
+148,79,400,Medo
+111,117,300,Medo
+80,118,320,Medo
+101,71,450,Medo
+150,100,380,Medo
+72,101,250,Tristeza
+146,80,410,Medo
+86,66,390,Medo
+89,70,500,Medo
+75,116,310,Medo
+101,117,350,Medo
+99,82,320,Medo
+135,83,520,Medo
+75,69,330,Medo
+118,95,360,Medo
+95,68,220,Tristeza
+91,111,300,Medo
+69,69,290,Medo
+116,117,350,Medo
+111,116,320,Medo
+69,72,450,Medo
+144,97,250,Tristeza
+61,74,400,Medo
+62,117,270,Medo
+134,92,350,Medo
+144,100,240,Tristeza
+68,82,320,Medo
+71,117,290,Medo
+122,113,360,Alegria
+132,115,310,Medo
+92,94,330,Medo
+133,113,320,Medo
+62,95,380,Medo
+98,103,280,Medo
+139,111,420,Alegria
+63,117,290,Medo
+98,71,350,Medo
+71,90,260,Medo
+60,117,320,Medo
+68,98,300,Medo
+106,107,380,Medo
+116,81,310,Medo
+113,94,380,Medo
+104,115,330,Medo
+69,100,420,Medo
+135,111,320,Medo
+83,109,380,Medo
+105,80,280,Medo
+133,91,330,Medo
+102,75,310,Medo
+119,67,380,Medo
+67,83,330,Medo
+81,110,400,Medo
+129,84,320,Medo
+81,111,380,Medo
+101,106,330,Medo
+123,99,410,Medo
+77,96,310,Medo
+75,115,350,Medo
+65,67,260,Tristeza
+93,118,360,Medo
+120,66,290,Medo
+136,81,380,Medo
+105,95,290,Medo
+117,101,340,Medo
+109,66,280,Medo
+133,112,350,Medo
+110,101,320,Medo
+128,94,380,Medo
+123,84,310,Medo
+123,91,350,Medo
+83,66,330,Medo
+73,115,400,Medo
+121,75,320,Medo
+127,103,380,Medo
+130,71,310,Medo
+93,101,340,Medo
+114,71,290,Medo
+64,67,360,Medo
+105,69,310,Medo
+150,114,350,Alegria
+76,83,290,Medo
+149,106,380,Alegria
+121,117,320,Medo
+111,113,400,Medo
+101,108,300,Medo
+112,117,320,Medo
+126,82,450,Medo
+61,103,380,Medo
+128,83,250,Tristeza
+81,105,410,Medo
+105,113,390,Medo
+83,79,500,Medo
+94,114,310,Medo
+137,75,350,Medo
+62,99,320,Medo
+89,95,520,Medo
+80,69,330,Medo
+113,112,360,Medo
+73,98,220,Tristeza
+85,101,300,Medo
+94,66,290,Medo
+88,118,350,Medo
+90,107,320,Medo
+117,69,450,Medo
+130,105,250,Tristeza
+61,72,400,Medo
+82,77,270,Medo
+149,68,350,Medo
+98,118,240,Tristeza
+127,107,320,Medo
+79,69,290,Medo
+115,78,360,Medo
+98,104,310,Medo
+94,74,330,Medo
+72,97,320,Medo
+131,117,380,Medo
+94,101,280,Medo
+84,115,420,Medo
+82,111,290,Medo
+107,113,350,Medo
+64,105,260,Medo
+108,117,320,Medo
+106,91,300,Medo

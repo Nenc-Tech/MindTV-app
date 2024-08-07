@@ -18,10 +18,11 @@ class DataCollectionThread(QThread):
     data_signal = pyqtSignal(list)
     progress_signal = pyqtSignal(int)
 
-    def __init__(self, port, duration):
+    def __init__(self, port, duration, frequency):
         super().__init__()
         self.port = port
         self.duration = duration
+        self.frequency = frequency
         self.collecting = True
 
     def run(self):
@@ -116,23 +117,12 @@ class ColetaInicialWidget(QWidget):
         self.duration_combo.addItems(["1", "2", "3", "4", "5"])
         layout.addWidget(self.duration_combo)
 
-        self.content_label = QLabel("Tipo de Conteúdo Assistido:")
-        layout.addWidget(self.content_label)
+        self.frequency_label = QLabel("Frequência de Coletas:")
+        layout.addWidget(self.frequency_label)
 
-        self.content_combo = QComboBox(self)
-        self.content_combo.addItems([
-            "Programa esportivo", "Programa jornalistico", "Programa politico", "Filme de acao", "Filme de comedia", 
-            "Filme de terror", "Serie de drama", "Programa de musica", "Serie de comedia", "Serie de acao", 
-            "Reality show", "Documentario", "Desenho animado", "Programa de culinaria", "Programa de viagem", 
-            "Programa de entrevistas", "Serie de ficcao cientifica", "Programa de variedade", "Programa infantil", 
-            "Minisserie", "Filme de romance", "Serie de suspense", "Programa de auditorio", "Programa de reformas", 
-            "Programa de talentos", "Filme de aventura", "Filme de fantasia", "Serie de misterio", 
-            "Programa de saude e bem-estar", "Telejornal", "Novela", "Programa de tecnologia", 
-            "Programa de natureza e vida selvagem", "Talk show", "Programa de moda e estilo", "Filme historico", 
-            "Serie policial", "Programa de quiz e jogos", "Serie documental", "Programa de debates", 
-            "Programa de espiritualidade/religiao", "Filme de animacao", "Serie antologica"
-        ])
-        layout.addWidget(self.content_combo)
+        self.frequency_combo = QComboBox(self)
+        self.frequency_combo.addItems(["64", "128", "256"])
+        layout.addWidget(self.frequency_combo)
 
         self.collect_button = QPushButton('Iniciar Coleta', self)
         self.collect_button.clicked.connect(self.collect_data)
@@ -147,6 +137,14 @@ class ColetaInicialWidget(QWidget):
         self.output.setReadOnly(True)
         layout.addWidget(self.output)
 
+        self.next_button = QPushButton('Próxima aba', self)
+        self.next_button.clicked.connect(self.next_tab)
+        self.next_button.setEnabled(False)
+        layout.addWidget(self.next_button)
+
+        self.progress_bar = QProgressBar(self)
+        layout.addWidget(self.progress_bar)
+
         self.setLayout(layout)
         self.setWindowTitle('Coleta Inicial')
         self.show()
@@ -157,15 +155,20 @@ class ColetaInicialWidget(QWidget):
     def get_selected_duration(self):
         return int(self.duration_combo.currentText()) * 60
 
+    def get_selected_frequency(self):
+        return int(self.frequency_combo.currentText())
+
     def collect_data(self):
         port = self.get_selected_port()
         duration = self.get_selected_duration()
-        self.output.append(f"Iniciando coleta de dados na porta {port} por {duration // 60} minutos...")
+        frequency = self.get_selected_frequency()
+        self.output.append(f"Iniciando coleta de dados na porta {port} por {duration // 60} minutos com frequência de {frequency} amostras/minuto...")
         self.collect_button.setEnabled(False)
 
-        self.data_collection_thread = DataCollectionThread(port, duration)
+        self.data_collection_thread = DataCollectionThread(port, duration, frequency)
         self.data_collection_thread.log_signal.connect(self.log_output)
         self.data_collection_thread.data_signal.connect(self.store_data)
+        self.data_collection_thread.progress_signal.connect(self.update_progress)
         self.data_collection_thread.start()
 
     def log_output(self, message):
@@ -175,7 +178,11 @@ class ColetaInicialWidget(QWidget):
         self.data = data
         self.export_button.setEnabled(True)
         self.collect_button.setEnabled(True)
+        self.next_button.setEnabled(True)
         self.output.append("Coleta de dados armazenada.")
+
+    def update_progress(self, value):
+        self.progress_bar.setValue(value)
 
     def export_csv(self):
         try:
@@ -195,6 +202,9 @@ class ColetaInicialWidget(QWidget):
             self.output.append(f"Dados exportados para {filename}")
         except Exception as e:
             self.output.append(f"Erro ao exportar dados: {str(e)}")
+
+    def next_tab(self):
+        self.parent().setCurrentIndex(1)
 
 class TreinamentoRedeWidget(QWidget):
     def __init__(self):
@@ -219,6 +229,11 @@ class TreinamentoRedeWidget(QWidget):
         self.output.setReadOnly(True)
         layout.addWidget(self.output)
 
+        self.next_button = QPushButton('Próxima aba', self)
+        self.next_button.clicked.connect(self.next_tab)
+        self.next_button.setEnabled(False)
+        layout.addWidget(self.next_button)
+
         self.setLayout(layout)
         self.setWindowTitle('Treinamento da Rede')
 
@@ -230,7 +245,7 @@ class TreinamentoRedeWidget(QWidget):
         if file_path:
             self.file_paths[index] = file_path
             self.output.append(f"Arquivo {index+1} selecionado: {file_path}")
-
+    
     def train_model(self):
         if not self.file_paths[0]:
             self.output.append("Erro: pelo menos um arquivo CSV deve ser selecionado.")
@@ -239,11 +254,18 @@ class TreinamentoRedeWidget(QWidget):
         self.train_button.setEnabled(False)
         self.training_thread = TrainingThread(self.file_paths)
         self.training_thread.log_signal.connect(self.log_output)
+        self.training_thread.finished.connect(self.enable_next_button)
         self.training_thread.start()
 
     def log_output(self, message):
         self.output.append(message)
+
+    def enable_next_button(self):
         self.train_button.setEnabled(True)
+        self.next_button.setEnabled(True)
+
+    def next_tab(self):
+        self.parent().setCurrentIndex(2)
 
 class PredictionResultDialog(QDialog):
     def __init__(self, message):
@@ -278,11 +300,18 @@ class MindTVAppWidget(QWidget):
         self.duration_spin.setRange(1, 5)
         layout.addWidget(self.duration_spin)
 
+        self.frequency_label = QLabel("Frequência de Coletas:")
+        layout.addWidget(self.frequency_label)
+
+        self.frequency_combo = QComboBox(self)
+        self.frequency_combo.addItems(["64", "128", "256"])
+        layout.addWidget(self.frequency_combo)
+
         self.collect_button = QPushButton('Iniciar Coleta', self)
         self.collect_button.clicked.connect(self.collect_data)
         layout.addWidget(self.collect_button)
 
-        self.predict_button = QPushButton('Previsão de Conteúdo', self)
+        self.predict_button = QPushButton('Previsão de Sentimento', self)
         self.predict_button.clicked.connect(self.predict_content)
         self.predict_button.setEnabled(False)
         layout.addWidget(self.predict_button)
@@ -304,13 +333,17 @@ class MindTVAppWidget(QWidget):
     def get_duration(self):
         return self.duration_spin.value()
 
+    def get_frequency(self):
+        return int(self.frequency_combo.currentText())
+
     def collect_data(self):
         port = self.get_selected_port()
         duration = self.get_duration() * 60  # Convert to seconds
-        self.output.append(f"Iniciando coleta de dados na porta {port} por {self.get_duration()} minutos...")
+        frequency = self.get_frequency()
+        self.output.append(f"Iniciando coleta de dados na porta {port} por {self.get_duration()} minutos com frequência de {frequency} amostras/minuto...")
 
         self.collect_button.setEnabled(False)
-        self.data_collection_thread = DataCollectionThread(port, duration)
+        self.data_collection_thread = DataCollectionThread(port, duration, frequency)
         self.data_collection_thread.log_signal.connect(self.log_output)
         self.data_collection_thread.data_signal.connect(self.save_data)
         self.data_collection_thread.progress_signal.connect(self.update_progress)

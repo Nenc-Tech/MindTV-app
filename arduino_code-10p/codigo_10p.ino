@@ -5,16 +5,16 @@
 MAX30105 particleSensor;
 
 const byte RATE_SIZE = 4;
-byte rates[10][RATE_SIZE];
-byte rateSpot[10];
-long lastBeat[10];
-float beatsPerMinute[10];
-int beatAvg[10];
+byte rates[4][RATE_SIZE];
+byte rateSpot[4];
+long lastBeat[4];
+float beatsPerMinute[4];
+int beatAvg[4];
 
 void setup() {
   Serial.begin(115200);
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 4; i++) {
     rateSpot[i] = 0;
     lastBeat[i] = 0;
     if (!particleSensor.begin(Wire, I2C_SPEED_FAST)) {
@@ -28,9 +28,9 @@ void setup() {
 }
 
 void loop() {
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 4; i++) {
     long irValue = particleSensor.getIR();
-    int GSR = analogRead(i); // Assume GSR sensors are connected to A0-A9
+    int GSR = analogRead(i); // Assume GSR sensors are connected to A0-A3
 
     if (checkForBeat(irValue)) {
       long delta = millis() - lastBeat[i];
