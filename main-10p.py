@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QThread, pyqtSignal
 from joblib import load, dump
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 
 class DataCollectionThread(QThread):
@@ -58,7 +59,7 @@ class PredictionThread(QThread):
             predictions = self.model.predict(df)
             prediction_counts = pd.Series(predictions).value_counts()
             most_common = prediction_counts.idxmax()
-            result_message = f"Emoção prevalecente: {most_common}"
+            result_message = f"Emoção prevista: {most_common}"
             self.prediction_signal.emit(result_message)
             self.log_signal.emit(result_message)
         except Exception as e:
@@ -80,9 +81,19 @@ class TrainingThread(QThread):
                     dfs.append(df)
             data = pd.concat(dfs, ignore_index=True)
             X = data[['beatsPerMinute', 'beatAvg', 'GSR']]
-            y = data['Emotion']
+            y = []
+            for index, row in X.iterrows():
+                if row['beatsPerMinute'] >= 120 and row['beatAvg'] >= 79 and row['GSR'] >= 450:
+                    y.append("Alegria")
+                elif row['beatsPerMinute'] >= 123 and row['beatAvg'] >= 93 and row['GSR'] >= 380:
+                    y.append("Medo")
+                elif row['beatsPerMinute'] >= 117 and row['beatAvg'] >= 69 and row['GSR'] >= 320:
+                    y.append("Raiva")
+                else:
+                    y.append("Tristeza")
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             model = RandomForestClassifier(n_estimators=100, random_state=42)
-            model.fit(X, y)
+            model.fit(X_train, y_train)
             dump(model, 'trained_model.joblib')
             self.log_signal.emit("Treinamento concluído e modelo salvo como 'trained_model.joblib'.")
         except Exception as e:
@@ -230,7 +241,6 @@ class TreinamentoRedeWidget(QWidget):
         self.setWindowTitle('Treinamento da Rede')
 
         self.file_paths = [None] * 5
-
     def import_csv(self, index):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo CSV", "", "CSV Files (*.csv);;All Files (*)", options=options)
@@ -303,7 +313,7 @@ class MindTVAppWidget(QWidget):
         self.collect_button.clicked.connect(self.collect_data)
         layout.addWidget(self.collect_button)
 
-        self.predict_button = QPushButton('Previsão de Emoção', self)
+        self.predict_button = QPushButton('Previsão de Sentimento', self)
         self.predict_button.clicked.connect(self.predict_content)
         self.predict_button.setEnabled(False)
         layout.addWidget(self.predict_button)
@@ -391,3 +401,4 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_app = MainApp()
     sys.exit(app.exec_())
+
