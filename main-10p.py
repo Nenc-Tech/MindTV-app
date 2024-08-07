@@ -17,13 +17,14 @@ class DataCollectionThread(QThread):
     log_signal = pyqtSignal(str)
     data_signal = pyqtSignal(list)
     progress_signal = pyqtSignal(int)
+    sample_count_signal = pyqtSignal(int)
 
-    def __init__(self, port, duration, frequency):
+    def __init__(self, port, duration):
         super().__init__()
         self.port = port
         self.duration = duration
-        self.frequency = frequency
         self.collecting = True
+        self.sample_count = 0
 
     def run(self):
         try:
@@ -36,10 +37,12 @@ class DataCollectionThread(QThread):
                 data_split = data.split(',')
                 if len(data_split) == 4:
                     collected_data.append([float(data_split[1]), float(data_split[2]), float(data_split[3])])  # Ignoring irValue
+                    self.sample_count += 1
                 elapsed_time = (pd.Timestamp.now() - start_time).seconds
                 progress = int((elapsed_time / self.duration) * 100)
                 self.progress_signal.emit(progress)
             self.data_signal.emit(collected_data)
+            self.sample_count_signal.emit(self.sample_count)
             ser.close()
         except Exception as e:
             self.log_signal.emit(f"Erro durante a coleta de dados: {str(e)}")
@@ -59,7 +62,7 @@ class PredictionThread(QThread):
             predictions = self.model.predict(df)
             prediction_counts = pd.Series(predictions).value_counts()
             most_common = prediction_counts.idxmax()
-            result_message = f"Emoção prevista: {most_common}"
+            result_message = f"Tipo de conteúdo previsto: {most_common}"
             self.prediction_signal.emit(result_message)
             self.log_signal.emit(result_message)
         except Exception as e:
@@ -78,19 +81,13 @@ class TrainingThread(QThread):
             for file_path in self.file_paths:
                 if file_path:
                     df = pd.read_csv(file_path)
+                    if 'Content' not in df.columns:
+                        self.log_signal.emit(f"Erro: o arquivo {file_path} não contém a coluna 'Content'.")
+                        return
                     dfs.append(df)
             data = pd.concat(dfs, ignore_index=True)
             X = data[['beatsPerMinute', 'beatAvg', 'GSR']]
-            y = []
-            for index, row in X.iterrows():
-                if row['beatsPerMinute'] >= 120 and row['beatAvg'] >= 79 and row['GSR'] >= 450:
-                    y.append("Alegria")
-                elif row['beatsPerMinute'] >= 123 and row['beatAvg'] >= 93 and row['GSR'] >= 380:
-                    y.append("Medo")
-                elif row['beatsPerMinute'] >= 117 and row['beatAvg'] >= 69 and row['GSR'] >= 320:
-                    y.append("Raiva")
-                else:
-                    y.append("Tristeza")
+            y = data['Content']
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             model = RandomForestClassifier(n_estimators=100, random_state=42)
             model.fit(X_train, y_train)
@@ -123,13 +120,6 @@ class ColetaInicialWidget(QWidget):
         self.duration_combo.addItems(["1", "2", "3", "4", "5"])
         layout.addWidget(self.duration_combo)
 
-        self.frequency_label = QLabel("Frequência de Coletas:")
-        layout.addWidget(self.frequency_label)
-
-        self.frequency_combo = QComboBox(self)
-        self.frequency_combo.addItems(["64", "128", "256"])
-        layout.addWidget(self.frequency_combo)
-
         self.collect_button = QPushButton('Iniciar Coleta', self)
         self.collect_button.clicked.connect(self.collect_data)
         layout.addWidget(self.collect_button)
@@ -151,6 +141,9 @@ class ColetaInicialWidget(QWidget):
         self.progress_bar = QProgressBar(self)
         layout.addWidget(self.progress_bar)
 
+        self.sample_count_label = QLabel("Amostras coletadas: 0")
+        layout.addWidget(self.sample_count_label)
+
         self.setLayout(layout)
         self.setWindowTitle('Coleta Inicial')
         self.show()
@@ -161,20 +154,17 @@ class ColetaInicialWidget(QWidget):
     def get_selected_duration(self):
         return int(self.duration_combo.currentText()) * 60
 
-    def get_selected_frequency(self):
-        return int(self.frequency_combo.currentText())
-
     def collect_data(self):
         port = self.get_selected_port()
         duration = self.get_selected_duration()
-        frequency = self.get_selected_frequency()
-        self.output.append(f"Iniciando coleta de dados na porta {port} por {duration // 60} minutos com frequência de {frequency} amostras/minuto...")
+        self.output.append(f"Iniciando coleta de dados na porta {port} por {duration // 60} minutos...")
         self.collect_button.setEnabled(False)
 
-        self.data_collection_thread = DataCollectionThread(port, duration, frequency)
+        self.data_collection_thread = DataCollectionThread(port, duration)
         self.data_collection_thread.log_signal.connect(self.log_output)
         self.data_collection_thread.data_signal.connect(self.store_data)
         self.data_collection_thread.progress_signal.connect(self.update_progress)
+        self.data_collection_thread.sample_count_signal.connect(self.update_sample_count)
         self.data_collection_thread.start()
 
     def log_output(self, message):
@@ -190,6 +180,9 @@ class ColetaInicialWidget(QWidget):
     def update_progress(self, value):
         self.progress_bar.setValue(value)
 
+    def update_sample_count(self, count):
+        self.sample_count_label.setText(f"Amostras coletadas: {count}")
+
     def export_csv(self):
         try:
             df = pd.DataFrame(self.data, columns=['beatsPerMinute', 'beatAvg', 'GSR'])
@@ -200,7 +193,6 @@ class ColetaInicialWidget(QWidget):
             while os.path.exists(filename):
                 filename = f"{base_filename}({counter}){extension}"
                 counter += 1
-
             df.to_csv(filename, index=False)
             self.output.append(f"Dados exportados para {filename}")
         except Exception as e:
@@ -241,6 +233,7 @@ class TreinamentoRedeWidget(QWidget):
         self.setWindowTitle('Treinamento da Rede')
 
         self.file_paths = [None] * 5
+
     def import_csv(self, index):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo CSV", "", "CSV Files (*.csv);;All Files (*)", options=options)
@@ -302,13 +295,6 @@ class MindTVAppWidget(QWidget):
         self.duration_spin.setRange(1, 5)
         layout.addWidget(self.duration_spin)
 
-        self.frequency_label = QLabel("Frequência de Coletas:")
-        layout.addWidget(self.frequency_label)
-
-        self.frequency_combo = QComboBox(self)
-        self.frequency_combo.addItems(["64", "128", "256"])
-        layout.addWidget(self.frequency_combo)
-
         self.collect_button = QPushButton('Iniciar Coleta', self)
         self.collect_button.clicked.connect(self.collect_data)
         layout.addWidget(self.collect_button)
@@ -325,6 +311,9 @@ class MindTVAppWidget(QWidget):
         self.output.setReadOnly(True)
         layout.addWidget(self.output)
 
+        self.sample_count_label = QLabel("Amostras coletadas: 0")
+        layout.addWidget(self.sample_count_label)
+
         self.setLayout(layout)
         self.setWindowTitle('MindTV App')
         self.show()
@@ -335,20 +324,17 @@ class MindTVAppWidget(QWidget):
     def get_duration(self):
         return self.duration_spin.value()
 
-    def get_frequency(self):
-        return int(self.frequency_combo.currentText())
-
     def collect_data(self):
         port = self.get_selected_port()
         duration = self.get_duration() * 60  # Convert to seconds
-        frequency = self.get_frequency()
-        self.output.append(f"Iniciando coleta de dados na porta {port} por {self.get_duration()} minutos com frequência de {frequency} amostras/minuto...")
+        self.output.append(f"Iniciando coleta de dados na porta {port} por {self.get_duration()} minutos...")
 
         self.collect_button.setEnabled(False)
-        self.data_collection_thread = DataCollectionThread(port, duration, frequency)
+        self.data_collection_thread = DataCollectionThread(port, duration)
         self.data_collection_thread.log_signal.connect(self.log_output)
         self.data_collection_thread.data_signal.connect(self.save_data)
         self.data_collection_thread.progress_signal.connect(self.update_progress)
+        self.data_collection_thread.sample_count_signal.connect(self.update_sample_count)
         self.data_collection_thread.start()
 
     def save_data(self, data):
@@ -360,6 +346,9 @@ class MindTVAppWidget(QWidget):
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
+
+    def update_sample_count(self, count):
+        self.sample_count_label.setText(f"Amostras coletadas: {count}")
 
     def predict_content(self):
         try:
@@ -401,4 +390,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main_app = MainApp()
     sys.exit(app.exec_())
-
