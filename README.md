@@ -32,7 +32,7 @@ Este projeto consiste em um sistema para coletar, treinar e prever emoções bas
 ### Coleta Inicial
 
 1. Selecione a porta serial onde os sensores estão conectados.
-2. Defina o tempo de coleta (em minutos) e a frequência das coletas.
+2. Defina o tempo de coleta (em minutos) das coletas.
 3. Clique em "Iniciar Coleta" para começar a coletar os dados dos sensores.
 4. Visualize os dados coletados na barra de log e acompanhe o progresso da coleta através da barra de progresso.
 5. Após a coleta, clique em "Exportar CSV" para salvar os dados coletados em um arquivo CSV.
@@ -49,11 +49,12 @@ Este projeto consiste em um sistema para coletar, treinar e prever emoções bas
 ### MindTV App
 
 1. Selecione a porta serial onde os sensores estão conectados.
-2. Defina o tempo de coleta (em minutos) e a frequência das coletas.
+2. Defina o tempo de coleta (em minutos) das coletas.
 3. Clique em "Iniciar Coleta" para começar a coletar os dados dos sensores em tempo real.
 4. Visualize os dados coletados na barra de log e acompanhe o progresso da coleta através da barra de progresso.
-5. Após a coleta, clique em "Previsão de Emoção" para prever a emoção predominante com base nos dados coletados em tempo real utilizando o modelo treinado.
-6. O resultado da previsão será exibido na barra de log e em uma janela de diálogo.
+5. Acompanhe o gráfico de emoções em tempo real.
+6. Após a coleta, clique em "Previsão de Emoção" para prever a emoção predominante com base nos dados coletados em tempo real utilizando o modelo treinado.
+7. O resultado da previsão será exibido na barra de log e em uma janela de diálogo.
 
 ## Código do Arduino
 
