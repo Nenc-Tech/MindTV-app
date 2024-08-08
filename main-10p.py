@@ -51,54 +51,82 @@ class DataCollectionThread(QThread):
         except Exception as e:
             self.log_signal.emit(f"Erro durante a coleta de dados: {str(e)}")
 
+
 class PredictionThread(QThread):
     log_signal = pyqtSignal(str)
     prediction_signal = pyqtSignal(str)
 
-    def __init__(self, model, data):
+    def __init__(self, file_path):
         super().__init__()
-        self.model = model
-        self.data = data
+        self.file_path = file_path
 
     def run(self):
         try:
-            df = pd.DataFrame(self.data, columns=['beatsPerMinute', 'beatAvg', 'GSR'])
-            predictions = self.model.predict(df)
-            prediction_counts = pd.Series(predictions).value_counts()
-            most_common = prediction_counts.idxmax()
-            result_message = f"Tipo de conteúdo previsto: {most_common}"
-            self.prediction_signal.emit(result_message)
-            self.log_signal.emit(result_message)
+            if self.file_path and os.path.exists(self.file_path):
+                df = pd.read_csv(self.file_path)
+                
+                # Verificação se todas as colunas necessárias estão presentes
+                if all(col in df.columns for col in ['beatsPerMinute', 'beatAvg', 'GSR']):
+                    X_new = df[['beatsPerMinute', 'beatAvg', 'GSR']]
+                    
+                    # Carregamento do modelo treinado
+                    model = load('trained_model.joblib')
+                    
+                    # Previsão
+                    predictions = model.predict(X_new)
+                    
+                    # Adiciona a coluna de predições ao DataFrame e salva em um novo CSV
+                    df['PredictedEmotion'] = predictions
+                    output_file = 'predictions.csv'
+                    df.to_csv(output_file, index=False)
+                    
+                    self.log_signal.emit(f"Predições realizadas e salvas em '{output_file}'.")
+                else:
+                    self.log_signal.emit("Erro: O arquivo não contém todas as colunas necessárias ('beatsPerMinute', 'beatAvg', 'GSR').")
+            else:
+                self.log_signal.emit(f"Erro: o arquivo {self.file_path} não foi encontrado.")
+                
         except Exception as e:
-            self.log_signal.emit(f"Erro durante a previsão: {str(e)}")
+            self.log_signal.emit(f"Erro durante a predição: {str(e)}")
 
 class TrainingThread(QThread):
     log_signal = pyqtSignal(str)
 
-    def __init__(self, file_paths):
+    def __init__(self):
         super().__init__()
-        self.file_paths = file_paths
 
     def run(self):
         try:
-            dfs = []
-            for file_path in self.file_paths:
-                if file_path:
-                    df = pd.read_csv(file_path)
-                    if 'Content' not in df.columns:
-                        self.log_signal.emit(f"Erro: o arquivo {file_path} não contém a coluna 'Content'.")
-                        return
-                    dfs.append(df)
-            data = pd.concat(dfs, ignore_index=True)
-            X = data[['beatsPerMinute', 'beatAvg', 'GSR']]
-            y = data['Content']
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-            model = RandomForestClassifier(n_estimators=100, random_state=42)
-            model.fit(X_train, y_train)
-            dump(model, 'trained_model.joblib')
-            self.log_signal.emit("Treinamento concluído e modelo salvo como 'trained_model.joblib'.")
+            file_path = 'dados_base.csv'
+            if os.path.exists(file_path):
+                df = pd.read_csv(file_path)
+                if 'Emotion' not in df.columns:
+                    self.log_signal.emit(f"Erro: o arquivo {file_path} não contém a coluna 'Emotion'.")
+                    return
+                
+                # Separação das features e do label
+                X = df[['beatsPerMinute', 'beatAvg', 'GSR']]
+                y = df['Emotion']
+                
+                # Divisão dos dados em treino e teste
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                
+                # Treinamento do modelo
+                model = RandomForestClassifier(n_estimators=100, random_state=42)
+                model.fit(X_train, y_train)
+                
+                # Avaliação do modelo
+                accuracy = model.score(X_test, y_test)
+                self.log_signal.emit(f"Treinamento concluído com acurácia de {accuracy:.2f}.")
+                
+                # Salvamento do modelo
+                dump(model, 'trained_model.joblib')
+                self.log_signal.emit("Modelo salvo como 'trained_model.joblib'.")
+            else:
+                self.log_signal.emit(f"Erro: o arquivo {file_path} não foi encontrado.")
         except Exception as e:
             self.log_signal.emit(f"Erro durante o treinamento: {str(e)}")
+
 
 class ColetaInicialWidget(QWidget):
     def __init__(self):
@@ -221,17 +249,6 @@ class TreinamentoRedeWidget(QWidget):
     def initUI(self):
         layout = QVBoxLayout()
 
-        self.import_buttons = []
-        for i in range(5):
-            import_button = QPushButton(f'Selecionar arquivo CSV {i+1}', self)
-            import_button.clicked.connect(lambda _, x=i: self.import_csv(x))
-            layout.addWidget(import_button)
-            self.import_buttons.append(import_button)
-
-        self.train_button = QPushButton('Treinar Modelo', self)
-        self.train_button.clicked.connect(self.train_model)
-        layout.addWidget(self.train_button)
-
         self.output = QTextEdit(self)
         self.output.setReadOnly(True)
         layout.addWidget(self.output)
@@ -244,30 +261,65 @@ class TreinamentoRedeWidget(QWidget):
         self.setLayout(layout)
         self.setWindowTitle('Treinamento da Rede')
 
-        self.file_paths = [None] * 5
-
-    def import_csv(self, index):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo CSV", "", "CSV Files (*.csv);;All Files (*)", options=options)
-        if file_path:
-            self.file_paths[index] = file_path
-            self.output.append(f"Arquivo {index+1} selecionado: {file_path}")
+        # Inicia o treinamento automático ao carregar o widget
+        self.train_model()
 
     def train_model(self):
-        if not any(self.file_paths):
-            self.output.append("Erro: pelo menos um arquivo CSV deve ser selecionado.")
-            return
-        self.output.append("Iniciando o treinamento do modelo...")
-        self.train_button.setEnabled(False)
-        self.training_thread = TrainingThread(self.file_paths)
+        self.output.append("Iniciando treinamento do modelo com 'dados_base.csv'...")
+        self.training_thread = TrainingThread()
         self.training_thread.log_signal.connect(self.log_output)
         self.training_thread.start()
 
     def log_output(self, message):
         self.output.append(message)
+        if "Treinamento concluído" in message:
+            self.next_button.setEnabled(True)
 
     def next_tab(self):
         self.parent().setCurrentIndex(2)
+
+class PrevisaoTipoWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        self.file_path = None
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        self.import_button = QPushButton('Selecionar arquivo CSV para Previsão', self)
+        self.import_button.clicked.connect(self.import_csv)
+        layout.addWidget(self.import_button)
+
+        self.predict_button = QPushButton('Prever Tipo de Conteúdo', self)
+        self.predict_button.clicked.connect(self.predict_content_type)
+        self.predict_button.setEnabled(False)
+        layout.addWidget(self.predict_button)
+
+        self.output = QTextEdit(self)
+        self.output.setReadOnly(True)
+        layout.addWidget(self.output)
+
+        self.setLayout(layout)
+        self.setWindowTitle('Previsão do Tipo de Conteúdo')
+
+    def import_csv(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar Arquivo CSV", "", "CSV Files (*.csv);;All Files (*)", options=options)
+        if file_path:
+            self.file_path = file_path
+            self.output.append(f"Arquivo CSV selecionado: {file_path}")
+            self.predict_button.setEnabled(True)
+
+    def predict_content_type(self):
+        self.output.append("Iniciando previsão do tipo de conteúdo...")
+        self.prediction_thread = PredictionThread(self.file_path)
+        self.prediction_thread.log_signal.connect(self.log_output)
+        self.prediction_thread.start()
+
+    def log_output(self, message):
+        self.output.append(message)
+
 
 class MainApp(QTabWidget):
     def __init__(self):
@@ -277,7 +329,7 @@ class MainApp(QTabWidget):
     def initUI(self):
         self.coleta_inicial_widget = ColetaInicialWidget()
         self.treinamento_rede_widget = TreinamentoRedeWidget()
-        self.predicao_widget = PredicaoWidget()
+        self.predicao_widget = PrevisaoTipoWidget()
         
         self.addTab(self.coleta_inicial_widget, "Coleta Inicial")
         self.addTab(self.treinamento_rede_widget, "Treinamento da Rede")
@@ -286,67 +338,9 @@ class MainApp(QTabWidget):
         self.setWindowTitle('MindTV App')
         self.show()
 
-class PredicaoWidget(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        layout = QVBoxLayout()
-
-        self.import_button = QPushButton('Selecionar arquivo CSV para Predição', self)
-        self.import_button.clicked.connect(self.import_csv)
-        layout.addWidget(self.import_button)
-
-        self.predict_button = QPushButton('Realizar Predição', self)
-        self.predict_button.clicked.connect(self.predict)
-        layout.addWidget(self.predict_button)
-
-        self.output = QTextEdit(self)
-        self.output.setReadOnly(True)
-        layout.addWidget(self.output)
-
-        self.setLayout(layout)
-        self.setWindowTitle('Predição')
-
-        self.file_path = None
-        self.model = None
-
-    def import_csv(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, "Selecionar arquivo CSV", "", "CSV Files (*.csv);;All Files (*)", options=options)
-        if file_path:
-            self.file_path = file_path
-            self.output.append(f"Arquivo selecionado: {file_path}")
-
-    def predict(self):
-        if not self.file_path:
-            self.output.append("Erro: selecione um arquivo CSV para predição.")
-            return
-        if not os.path.exists('trained_model.joblib'):
-            self.output.append("Erro: modelo treinado não encontrado.")
-            return
-        self.output.append("Iniciando a predição...")
-        self.predict_button.setEnabled(False)
-        self.model = load('trained_model.joblib')
-        data = pd.read_csv(self.file_path)
-        if 'beatsPerMinute' not in data.columns or 'beatAvg' not in data.columns or 'GSR' not in data.columns:
-            self.output.append("Erro: o arquivo CSV deve conter as colunas 'beatsPerMinute', 'beatAvg' e 'GSR'.")
-            self.predict_button.setEnabled(True)
-            return
-        self.prediction_thread = PredictionThread(self.model, data[['beatsPerMinute', 'beatAvg', 'GSR']].values.tolist())
-        self.prediction_thread.log_signal.connect(self.log_output)
-        self.prediction_thread.prediction_signal.connect(self.show_prediction)
-        self.prediction_thread.start()
-
-    def log_output(self, message):
-        self.output.append(message)
-
-    def show_prediction(self, prediction):
-        self.output.append(prediction)
-        self.predict_button.setEnabled(True)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    main_app = MainApp()
+    main_widget = MainApp()
+    main_widget.show()
     sys.exit(app.exec_())
