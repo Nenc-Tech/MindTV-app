@@ -332,7 +332,6 @@ class MainApp(QTabWidget):
         self.predicao_widget = PrevisaoTipoWidget()
         
         self.addTab(self.coleta_inicial_widget, "Coleta Inicial")
-        self.addTab(self.treinamento_rede_widget, "Treinamento da Rede")
         self.addTab(self.predicao_widget, "Predição")
 
         self.setWindowTitle('MindTV App')
