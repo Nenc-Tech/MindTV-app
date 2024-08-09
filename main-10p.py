@@ -249,38 +249,13 @@ class TreinamentoRedeWidget(QWidget):
         self.initUI()
 
     def initUI(self):
-        layout = QVBoxLayout()
-
-        self.output = QTextEdit(self)
-        self.output.setReadOnly(True)
-        layout.addWidget(self.output)
-
-        self.next_button = QPushButton('Próxima aba', self)
-        self.next_button.clicked.connect(self.next_tab)
-        self.next_button.setEnabled(False)
-        layout.addWidget(self.next_button)
-
-        self.setLayout(layout)
-        self.setWindowTitle('Treinamento da Rede')
-
         # Inicia o treinamento automático ao carregar o widget
         self.train_model()
 
     def train_model(self):
-        self.output.append("Iniciando treinamento do modelo com 'dados_base.csv'...")
         self.training_thread = TrainingThread()
-        self.training_thread.log_signal.connect(self.log_output)
         self.training_thread.start()
 
-    def log_output(self, message):
-        self.output.append(message)
-        if "Treinamento concluído" in message:
-            self.next_button.setEnabled(True)
-
-    def next_tab(self):
-        self.parent().setCurrentIndex(2)
-
-        
 class PrevisaoTipoWidget(QWidget):
     def __init__(self):
         super().__init__()
@@ -308,7 +283,7 @@ class PrevisaoTipoWidget(QWidget):
         layout.addWidget(self.next_button)
 
         self.setLayout(layout)
-        self.setWindowTitle('Predição')
+        self.setWindowTitle('Previsão das Emoções')
 
     def select_file(self):
         file_dialog = QFileDialog(self)
@@ -328,7 +303,7 @@ class PrevisaoTipoWidget(QWidget):
 
     def log_output(self, message):
         self.output.append(message)
-        if "Predições realizadas" in message:
+        if "Previsões realizadas" in message:
             self.next_button.setEnabled(True)
         self.predict_button.setEnabled(True)
 
@@ -337,52 +312,81 @@ class PrevisaoTipoWidget(QWidget):
 
 class RealTimeEmotionThread(QThread):
     log_signal = pyqtSignal(str)
-    emotion_signal = pyqtSignal(str, float)
+    data_signal = pyqtSignal(list)
+    progress_signal = pyqtSignal(int)
+    sample_count_signal = pyqtSignal(int)
+    emotion_signal = pyqtSignal(str, float)  # Emite a emoção e o valor de GSR para plotar
 
-    def __init__(self, port, model):
+    def __init__(self, port, duration, model):
         super().__init__()
         self.port = port
-        self.model = model
-        self.running = True
+        self.duration = duration
+        self.model = model  # O modelo de ML treinado é passado como argumento
+        self.collecting = True
+        self.sample_count = 0
+        self.collected_data = []
 
     def run(self):
         try:
             ser = serial.Serial(self.port, 115200)
-            while self.running:
+            start_time = pd.Timestamp.now()
+            while (pd.Timestamp.now() - start_time).seconds < self.duration:
                 data = ser.readline().decode('utf-8').strip()
+                self.log_signal.emit(data)
                 data_split = data.split(',')
                 if len(data_split) == 3:
                     try:
                         row = [float(data_split[0]), float(data_split[1]), float(data_split[2])]
-                        prediction = self.model.predict([row])[0]
-                        self.emotion_signal.emit(prediction, row[-1])  # Envia a predição e o valor de GSR
+                        self.collected_data.append(row)
+                        self.sample_count += 1
+                        
+                        # Realiza a previsão com os dados coletados
+                        input_data = pd.DataFrame([row], columns=['beatsPerMinute', 'beatAvg', 'GSR'])
+                        prediction = self.model.predict(input_data)[0]
+                        
+                        # Emite o sinal com a emoção predita e o valor de GSR
+                        self.emotion_signal.emit(prediction, row[2])
                     except ValueError:
                         self.log_signal.emit(f"Erro ao converter dados: {data}")
+                elapsed_time = (pd.Timestamp.now() - start_time).seconds
+                progress = int((elapsed_time / self.duration) * 100)
+                self.progress_signal.emit(progress)
+            self.data_signal.emit(self.collected_data)
+            self.sample_count_signal.emit(self.sample_count)
             ser.close()
         except Exception as e:
-            self.log_signal.emit(f"Erro durante a leitura em tempo real: {str(e)}")
+            self.log_signal.emit(f"Erro durante a coleta de dados: {str(e)}")
 
 class RealTimeEmotionWidget(QWidget):
-    def __init__(self):
+    def __init__(self, coleta_inicial_widget):
         super().__init__()
-        self.initUI()
-        self.model = None
+        self.coleta_inicial_widget = coleta_inicial_widget
         self.emotions = []
         self.gsr_values = []
+        self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout()
+
+        self.port_label = QLabel("Selecione a Porta Serial:")
+        layout.addWidget(self.port_label)
+
+        self.port_combo = QComboBox(self)
+        ports = serial.tools.list_ports.comports()
+        for port in ports:
+            self.port_combo.addItem(port.device)
+        layout.addWidget(self.port_combo)
 
         self.output = QTextEdit(self)
         self.output.setReadOnly(True)
         layout.addWidget(self.output)
 
-        self.start_button = QPushButton('Iniciar Leitura em Tempo Real', self)
-        self.start_button.clicked.connect(self.start_real_time)
+        self.start_button = QPushButton('Iniciar Coleta e Previsões', self)
+        self.start_button.clicked.connect(self.start_collection)
         layout.addWidget(self.start_button)
 
-        self.stop_button = QPushButton('Parar Leitura', self)
-        self.stop_button.clicked.connect(self.stop_real_time)
+        self.stop_button = QPushButton('Parar Coleta', self)
+        self.stop_button.clicked.connect(self.stop_collection)
         self.stop_button.setEnabled(False)
         layout.addWidget(self.stop_button)
 
@@ -394,40 +398,56 @@ class RealTimeEmotionWidget(QWidget):
         self.setLayout(layout)
         self.setWindowTitle('Emoções em Tempo Real')
 
-    def start_real_time(self):
-        self.output.append("Iniciando leitura em tempo real...")
+    def start_collection(self):
+        self.output.append("Iniciando coleta e previsões em tempo real...")
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
 
         self.model = load('trained_model.joblib')  # Carrega o modelo treinado
-        self.port = self.parent().coleta_inicial_widget.get_selected_port()  # Obtém a porta selecionada
+        self.port = self.coleta_inicial_widget.get_selected_port()  # Obtém a porta selecionada
 
-        self.real_time_thread = RealTimeEmotionThread(self.port, self.model)
-        self.real_time_thread.log_signal.connect(self.log_output)
-        self.real_time_thread.emotion_signal.connect(self.update_emotion)
-        self.real_time_thread.start()
+        self.data_collection_thread = RealTimeEmotionThread(self.port, 300, self.model)  # Coleta por 5 minutos
+        self.data_collection_thread.log_signal.connect(self.log_output)
+        self.data_collection_thread.emotion_signal.connect(self.update_emotion)  # Conecta ao método update_emotion
+        self.data_collection_thread.start()
 
-    def stop_real_time(self):
-        self.output.append("Parando leitura em tempo real...")
-        self.real_time_thread.running = False
+    def stop_collection(self):
+        self.output.append("Parando coleta e previsões...")
+        self.data_collection_thread.collecting = False
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
 
     def log_output(self, message):
         self.output.append(message)
 
-    def update_emotion(self, emotion, gsr_value):
-        self.output.append(f"Emoção detectada: {emotion}")
-        self.emotions.append(emotion)
+    def update_emotion(self, prediction, gsr_value):
+        self.output.append(f"Emoção detectada: {prediction}")
+        self.emotions.append(prediction)
         self.gsr_values.append(gsr_value)
         self.plot_graph()
 
     def plot_graph(self):
+        self.figure.clear()
         ax = self.figure.add_subplot(111)
-        ax.clear()
-        ax.plot(self.gsr_values, label='GSR')
+        
+        if len(self.gsr_values) == 0 or len(self.emotions) == 0:
+            self.output.append("Nenhum dado disponível para plotar.")
+            return
+        
+        self.output.append(f"Plotando {len(self.gsr_values)} valores de GSR e {len(self.emotions)} emoções.")
+        
+        ax.plot(self.gsr_values, label='GSR', color='blue')
+        ax.set_xlabel('Tempo')
+        ax.set_ylabel('GSR', color='blue')
+
+        ax2 = ax.twinx()
+        ax2.plot(self.emotions, label='Emoções', color='red')
+        ax2.set_ylabel('Emoções', color='red')
+
+        ax.legend(loc='upper left')
+        ax2.legend(loc='upper right')
         ax.set_title('GSR e Emoções em Tempo Real')
-        ax.legend()
+
         self.canvas.draw()
 
 class MainApp(QTabWidget):
@@ -439,10 +459,10 @@ class MainApp(QTabWidget):
         self.coleta_inicial_widget = ColetaInicialWidget()
         self.treinamento_rede_widget = TreinamentoRedeWidget()
         self.predicao_widget = PrevisaoTipoWidget()
-        self.realtime_emotion_widget = RealTimeEmotionWidget()
+        self.realtime_emotion_widget = RealTimeEmotionWidget(self.coleta_inicial_widget)  # Passa o objeto coleta_inicial_widget como parâmetro
         
         self.addTab(self.coleta_inicial_widget, "Coleta Inicial")
-        self.addTab(self.predicao_widget, "Predição")
+        self.addTab(self.predicao_widget, "Previsões das Emoções")
         self.addTab(self.realtime_emotion_widget, "Emoções em Tempo Real")
 
         self.setWindowTitle('MindTV App')
